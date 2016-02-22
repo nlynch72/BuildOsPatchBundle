@@ -1,0 +1,75 @@
+group 'org.lynch.niel'
+version '1.0-SNAPSHOT'
+
+apply plugin: 'groovy'
+apply plugin: 'java'
+apply plugin: 'distribution'
+
+sourceCompatibility = 1.5
+
+def bundleDir = 'rpm-dir'
+def bundleName = 'rpmBundle'
+
+defaultTasks 'createPackage'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile 'org.codehaus.groovy:groovy-all:2.3.11'
+    testCompile group: 'junit', name: 'junit', version: '4.11'
+}
+
+task cleanLocalCache(type: Exec) {
+    executable "bash"
+    args "-c", "zypper clean"
+}
+task removeOldTarDir(type: Delete) {
+    delete bundleDir, "${bundleName}.tar.gz"
+}
+
+task getInstalledSoftware(type: Exec) {
+    dependsOn cleanLocalCache
+    executable "bash"
+    args "-c", "zypper search -i | grep -v 'product' | grep -v 'pattern' | awk -F' ' '{print \$3}' | sed -n 6,100000p > /tmp/setInstalledSoftware.list"
+}
+
+task createStagingRepo(type: Exec) {
+    dependsOn getInstalledSoftware
+    executable "bash"
+    args "-c", 'zypper -n install -f --download-only --auto-agree-with-licenses $(cat /tmp/setInstalledSoftware.list)'
+}
+
+task getUpdates(type: Exec) {
+    dependsOn getInstalledSoftware
+    if (project.hasProperty('updatePackageList')) {
+        executable "bash"
+        args "-c", "zypper -n install -f --download-only --auto-agree-with-licenses $updatePackageList"
+    }
+}
+
+task createPackageWithUpdates {
+        dependsOn 'createStagingRepo', 'getUpdates', 'createTarGz'
+}
+
+task createPackage {
+    dependsOn 'createStagingRepo', 'createTarGz'
+}
+
+task copyRPMs(type: Copy) {
+    dependsOn 'removeOldTarDir'
+    mustRunAfter 'getUpdates', 'createStagingRepo'
+    from fileTree('/var/cache/zypp/packages').files
+    into bundleDir
+    include '**/*.rpm'
+}
+
+task createTarGz(type: Tar) {
+    dependsOn copyRPMs
+    baseName = bundleName
+    destinationDir = new File(project.buildDir.path+'/installer')
+    compression = Compression.GZIP
+    from bundleDir
+    extension 'tar.gz'
+}
