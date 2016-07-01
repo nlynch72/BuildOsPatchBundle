@@ -4,6 +4,7 @@ version '1.0-SNAPSHOT'
 apply plugin: 'groovy'
 apply plugin: 'java'
 apply plugin: 'distribution'
+apply plugin: 'rpm'
 
 sourceCompatibility = 1.5
 
