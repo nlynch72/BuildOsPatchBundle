@@ -1,4 +1,4 @@
-node {
+node ('os-patch'){
     // Mark the code checkout 'stage'....
     stage 'Checkout'
 
