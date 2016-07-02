@@ -32,7 +32,7 @@ task removeOldTarDir(type: Delete) {
 task getInstalledSoftware(type: Exec) {
     dependsOn cleanLocalCache
     executable "bash"
-    args "-c", "zypper search -i | grep -v 'product' | grep -v openSUSE-2 | grep -v 'pattern' | awk -F' ' '{print \$3}' | sed -n 6,100000p > /tmp/setInstalledSoftware.list"
+    args "-c", "zypper search -i | grep -v 'application' | grep -v 'product' | grep -v openSUSE-2 | grep -v 'pattern' | awk -F' ' '{print \$3}' | sed -n 6,100000p > /tmp/setInstalledSoftware.list"
 }
 
 task createStagingRepo(type: Exec) {
